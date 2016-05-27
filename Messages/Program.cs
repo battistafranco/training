@@ -9,7 +9,7 @@ namespace Messages
 	{
 		static void Main(string[] args)
 		{
-			Print(@"
+      Infraestructure.Print(@"
             Let's create a new product basket to hold our shopping items and simply
             add some products to it directly via traditonal BLOCKING method calls.
             ");
@@ -46,7 +46,7 @@ namespace Messages
 			// The AddProductToBasketMessage is a class defined lower in this Program.cs file
 			// that will do exactly that for us.
 
-			Print(@"
+      Infraestructure.Print(@"
             Now, to add more stuff to the shopping basket via messaging (instead of a
             direct method call), we create an AddProductToBasketMessage to store our name
             and quantity arguments that will be provided to ProductBasket.AddProduct later
@@ -55,14 +55,14 @@ namespace Messages
 			// creating a new message to hold the arguments of "5 candles" to be addded to the basket
 			var message = new AddProductToBasketMessage("candles",5);
 
-			Print(@"Now, since we created that message, we will apply its item contents of:
+      Infraestructure.Print(@"Now, since we created that message, we will apply its item contents of:
             '" + message + "'" + @" 
             by sending it to the product basket to be handled.");
 
 			ApplyMessage(basket, message);
 
 
-			Print(@"
+      Infraestructure.Print(@"
             We don't have to send/apply messages immediately.  We can put messages into 
             some queue and send them later if needed. 
             Let's define more messages to put in a queue:
@@ -76,11 +76,11 @@ namespace Messages
 			// display each to message on the console
 			foreach (var enqueuedMessage in queue)
 			{
-				Print(" [Message in Queue is:] * " + enqueuedMessage);
+        Infraestructure.Print(" [Message in Queue is:] * " + enqueuedMessage);
 			}
 
 
-			Print(@"
+      Infraestructure.Print(@"
             This is what temporal decoupling is. Our product basket does not 
             need to be available at the same time that we create and memorize
             our messages. This will be extremely important, when we get to 
@@ -94,19 +94,16 @@ namespace Messages
 				ApplyMessage(basket, queue.Dequeue());
 			}
 
-			Print(@"
+      Infraestructure.Print(@"
             Now let's serialize our message to binary form,
             which allows the message object to travel between processes.
             ");
 
-			// Note: In the podcast we mentioned "MessageSerializer" as the code doing
-			// the serialization.  That was replaced below with "SimpleNetSerializer"
-			// to do the same thing in a simpler way to remove complexity from this sample.
+			
 
 			var serializer = new BinarySerializer();
 
-
-			Print(@"
+      Infraestructure.Print(@"
             Serialization is a process of recording an object instance
             (which currenly only exists in RAM/memory)
             to a binary representation (which is a set of bytes).
@@ -129,16 +126,16 @@ namespace Messages
 				bytes = stream.ToArray();
 			}
 
-			Print(@"
+      Infraestructure.Print(@"
             Let's see how this 'rosmary' message object would look in its binary form:
             ");
 			Console.WriteLine(BitConverter.ToString(bytes).Replace("-",""));
-			Print(@"
+      Infraestructure.Print(@"
             And if we tried to open it in a text editor...
             ");
 			Console.WriteLine(Encoding.ASCII.GetString(bytes));
 
-			Print(@"
+      Infraestructure.Print(@"
             Note the readable string content with some 'garbled' binary data!
             Now we'll save (persist) the 'rosmary' message to disk, in file 'message.bin'.
                 
@@ -149,7 +146,7 @@ namespace Messages
 			File.WriteAllBytes("message.bin", bytes);
 
 
-			Print(@"
+      Infraestructure.Print(@"
             Let's read the 'rosmary' message we serialized to file 'message.bin' back into memory.
             The process of reading a serialized object from byte array back into intance in memory 
             is called deserialization.
@@ -157,20 +154,20 @@ namespace Messages
 			using (var stream = File.OpenRead("message.bin"))
 			{
 				var readMessage = serializer.ReadMessage(stream);
-				Print("[Serialized Message was read from disk:] " + readMessage);
-				Print(@"Now let's apply that messaage to the product basket.
+        Infraestructure.Print("[Serialized Message was read from disk:] " + readMessage);
+        Infraestructure.Print(@"Now let's apply that messaage to the product basket.
                 ");
 				ApplyMessage(basket, readMessage);
 			}
 
-			Print(@"
+      Infraestructure.Print(@"
             Now you've learned what a message is (just a remote temporally
             decoupled message/method call, that can be persisted and then
             dispatched to the place that handles the request.
             You also learned how to actually serialize a message to a binary form
             and then deserialize it and dispatch it the handler.");
 
-			Print(@"
+      Infraestructure.Print(@"
             As you can see, you can use messages for passing information
             between machines, telling a story and also persisting.
             
@@ -180,16 +177,8 @@ namespace Messages
 			foreach (var total in basket.GetProductTotals())
 			{
 				Console.WriteLine("  {0}: {1}", total.Key, total.Value);
-			}
-
-			Print(@"
-            And that is the basics of messaging!
-            Stay tuned for more episodes and samples!
-            # Home work assignment.
-            * For C# developers - implement 'RemoveProductFromBasket'
-            * For non-C# developers - implement this code in your favorite platform.
-            NB: Don't hesitate to ask questions, if you get any.
-            ");
+			}    
+      Console.ReadLine();
 		}
 
 		static void ApplyMessage(ProductBasket basket, object message)
@@ -199,85 +188,7 @@ namespace Messages
 			// to dispatch it dynamically to one of "ProductBasket.When(...)" methods,
 			// which specifically can handle this type of the message
 			((dynamic) basket).When((dynamic)message);
-		}
-
-		static void Print(string message)
-		{
-			// just printing messages nicely
-			// and without spaces in the beginning
-			var oldColor = Console.ForegroundColor;
-			foreach (var line in message.Split(new[] { Environment.NewLine },StringSplitOptions.None))
-			{
-
-
-				var trimmed = line.TrimStart();
-
-				if (trimmed.StartsWith("#"))
-				{
-					Console.ForegroundColor = ConsoleColor.DarkRed;
-				}
-				else if (trimmed.StartsWith("*") | trimmed.StartsWith("- "))
-				{
-					Console.ForegroundColor = ConsoleColor.DarkBlue;
-				}
-				else
-				{
-					Console.ForegroundColor = ConsoleColor.Black;
-				}
-
-				Console.WriteLine(trimmed);
-			}
-			Console.ForegroundColor = oldColor;
-		}
-
-
-
-
-		public class ProductBasket
-		{
-			readonly IDictionary<string, double> _products = new Dictionary<string, double>(); 
-
-			public void AddProduct(string name, double quantity)
-			{
-				double currentQuantity;
-				if (!_products.TryGetValue(name,out currentQuantity))
-				{
-					currentQuantity = 0;
-				}
-				_products[name] = quantity + currentQuantity;
-
-				Console.WriteLine("Shopping Basket said: I added {0} unit(s) of '{1}'", quantity, name);
-			}
-
-			public void When(AddProductToBasketMessage toBasketMessage)
-			{
-				Console.Write("[Message Applied]: ");
-				AddProduct(toBasketMessage.Name, toBasketMessage.Quantity);
-			}
-
-			public IDictionary<string, double> GetProductTotals()
-			{
-				return _products;
-			} 
-		}
-
-
-		[Serializable]
-		public class AddProductToBasketMessage
-		{
-			public readonly string Name;
-			public readonly double Quantity;
-
-			public AddProductToBasketMessage(string name, double quantity)
-			{
-				Name = name;
-				Quantity = quantity;
-			}
-			public override string ToString()
-			{
-				return string.Format("Add {0} {1} to basket", Quantity, Name);
-			}
-		}
+		}    
 	}
 
 }
