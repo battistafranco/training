@@ -39,9 +39,6 @@ namespace Original
           Console.WriteLine("Shopping Basket said: I removed completly '{1}' from cart", quantity, name);
         }
       }
-      
-
-      
     }
 
     internal void Clear()
